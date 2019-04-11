@@ -5,13 +5,11 @@ import matplotlib.pyplot as plt
 # disable unused import warnings for casadi
 from casadi import *  # pylint: disable=W0614
 import numpy as np
-sys.path.append('../..')
-import nilo_seminar_lib as nsl  # pylint: disable=E0401
+import minsurf as ms  # pylint: disable=E0401
 import matplotlib.animation as animation
-import sys
 
-# reload on rerun for changes in nsl
-reload(nsl)
+# reload on rerun for changes in minsurf
+reload(ms)
 
 # m=2: trapezoidal rule
 # m=3: Simpson's rule
@@ -36,7 +34,7 @@ B = np.tile(np.atleast_2d(b).T, [1,4])
 B[:,0] = -B[:,0] + 1
 B[:,2] = -B[:,2] + 1
 
-# prignle
+# pringle
 #b = 2*(X-0.5)**2
 #B = np.tile(np.atleast_2d(b).T, [1,4])
 #B[:,0] = -B[:,0] + 1
@@ -46,13 +44,13 @@ B[:,2] = -B[:,2] + 1
 # double parabola: B + 0; 0,2 + 1
 
 #z = SX.sym('z', N, N)
-#[sfc, z, N] = nsl.surface_composite_newton_cotes(0, 1, n, m)
+#[sfc, z, N] = ms.surface_composite_newton_cotes(0, 1, n, m)
 
 # without center arch
-#[sfc, sym_arg, N] = nsl.constrained_surface_composite_newton_cotes(0, 1, B, n, m)
+#[sfc, sym_arg, N] = ms.constrained_surface_composite_newton_cotes(0, 1, B, n, m)
 
 # with center arch
-[sfc, sym_arg, N] = nsl.interior_constrained_surface_composite_newton_cotes(0, 1, B, n, m)
+[sfc, sym_arg, N] = ms.interior_constrained_surface_composite_newton_cotes(0, 1, B, n, m)
 s_f = Function('s_f', [sym_arg], [sfc])
 
 [X, Y] = np.meshgrid(X, Y)
@@ -88,7 +86,10 @@ ax = fig.gca(projection='3d')
 ax.set_zlim(0, 1)
 
 norm_gradfz = tol + 1
-# takes ages to compute as of right now; perhaps try FuncAnimation at some point
+# start the gradient descent procedure and
+# generate surface plots of every 10th
+# iterate to be glued together into an 
+# animation using ffmpeg
 it = 0
 cnt = 0
 while it <= 5000 and norm_gradfz >= tol:
@@ -134,12 +135,12 @@ while it <= 5000 and norm_gradfz >= tol:
         #plt.savefig('./plot_temp/parabola_test'+ str(cnt) +'.png')
         #plt.close(fig)
         cnt = cnt + 1
-        print("it, cnt: ", it, cnt)
+        print("it, norm_gradfz: ", it, norm_gradfz)
 fig = plt.figure()
 ax = fig.gca(projection='3d')
 ax.set_zlim(0, 1)
 ax.plot_surface(X, Y, z, color='c')
-plt.savefig('./plot_temp/parabola_test'+ str(cnt) +'.png')
+plt.savefig('./plot_temp/parabola_test'+ str(it) +'.png')
 plt.close(fig)
 
 # ani = FuncAnimation(fig, update, frames=np.arange(0,4000), init_func=init, blit=True)

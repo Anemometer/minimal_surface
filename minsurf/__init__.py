@@ -1,12 +1,11 @@
-# -----------------------------------------------------
-# ----library functions for the nilo seminar demos-----
-# -----------------------------------------------------
+#from .nilo_seminar_lib import *
 
 import numpy as np
 import scipy.integrate
 # disable unused import warnings for casadi
 from casadi import *  # pylint: disable=W0614
 
+name = "minsurf"
 
 def surface_composite_newton_cotes(left_bd, right_bd, n=20, m=2):
     """Assemble a casadi-symbolic composite Newton-Cotes
@@ -345,4 +344,3 @@ def interior_constrained_surface_composite_newton_cotes(left_bd, right_bd, B, n=
     sfc = (((right_bd - left_bd)/(n))**2) * sfc
     print("...done! Performed s = ", s, "assembly operations.\n")
     return sfc,z_complete,N
-
