@@ -1,5 +1,3 @@
-#from .nilo_seminar_lib import *
-
 import numpy as np
 import scipy.integrate
 # disable unused import warnings for casadi
