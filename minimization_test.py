@@ -1,4 +1,3 @@
-# from matplotlib.animation import FuncAnimation
 from importlib import reload
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
@@ -6,10 +5,8 @@ import matplotlib.pyplot as plt
 from casadi import *  # pylint: disable=W0614
 import numpy as np
 import minsurf as ms  # pylint: disable=E0401
-import matplotlib.animation as animation
 
-# reload on rerun for changes in minsurf
-reload(ms)
+# for a more detailed description: see seminar_summary.pdf, ch. 3.5
 
 # newton-cotes quadrature rank
 # m=1: midpoint rule
@@ -21,7 +18,7 @@ m = 3
 # [0,1] into
 n = 10
 
-# number of individual grid points
+# N is the number of individual grid points
 # on which the surface integrand is 
 # to be evaluated
 N = m + (n-1)*(m-1)
@@ -35,7 +32,7 @@ Y = X
 # on [x,0], [x,1], [0,y], [1,y]
 B = np.zeros((N, 4))
 
-# set some individual boundarypoints 
+# set some individual boundarypoints if desired
 #B[0, 0] = 1
 #B[0, 1] = 1
 #B[0, 2] = 0
@@ -59,6 +56,7 @@ B[:,0] = -B[:,0] + 1
 B[:,2] = -B[:,2] + 1
 
 # other boundary curves include:
+
 # "the pringle"
 #b = 2*(X-0.5)**2
 #B = np.tile(np.atleast_2d(b).T, [1,4])
@@ -69,44 +67,48 @@ B[:,2] = -B[:,2] + 1
 #b = 0.5*b - 0.25
 #B = np.tile(np.atleast_2d(b).T, [1,4])
 
+
 # minsurf supplies two functions which yield a casadi symbolic
 # argument sym_arg representing the discretized grid function z and
 # a corresponding expression sfc representing the discretized surface 
 # functional S(z) (see (3.7) in seminar_summary.pdf)
 
-# the first function does not include the additional interior line 
-# segment constraint (Fig. 3.4(d))
-#[sfc, sym_arg, N] = ms.constrained_surface_composite_newton_cotes(0, 1, B, n, m)
+# the first function does not include any constraints
+# it can be used to compute an approximation of the surface 
+# area of the graph of a function on [0,1]^2
+#[sfc, sym_arg, N] = ms.surface_composite_newton_cotes(0, 1, n, m)
 
-# the second function includes the line segment constraint and applies 
+# the second function includes constraints on the boundary of [0,1]^2
+# and the additional option of interior constraints in the form of
 # a quadratic function similar to the boundary constraints ("an arch")
 # or simply two peaks at [0.25,0.5] and [0.75,0.5]
-[sfc, sym_arg, N] = ms.interior_constrained_surface_composite_newton_cotes(0, 1, B, n, m)
+[sfc, sym_arg, N] = ms.interior_constrained_surface_composite_newton_cotes(0, 1, B, n, m, interior="arch")
 
 # create a casadi function object from the symbolic expressions
 s_f = Function('s_f', [sym_arg], [sfc])
 
-# set the initial value: a grid function on a [0,1] mesh grid
+# prepare the initial value: a grid function on a [0,1] mesh grid
 [X, Y] = np.meshgrid(X, Y)
 
 # spherical initial surface:
 #Z = np.sqrt(1 - X**2 - Y**2)
 #Z[np.isnan(Z)] = 0
 
-# constant initial function satisfying the boundary constraints
+# constant initial surface satisfying the boundary constraints
 Z = 2*np.ones((N,N))
 Z[0,:] = B[:,0]
 Z[:,0] = B[:,1]
 Z[-1,:] = B[:,2]
 Z[:,-1] = B[:,3]
 
+
 # and the interior constraints:
 
-# two peaks
+# either the described two peaks
 #Z[N//4, N//2] = 1
 #Z[3*N//4, N//2] = 1
 
-# or the interior "arch" constraint
+# or the mentioned interior "arch" constraint
 b = np.linspace(0,1,3*N//4 - N//4)
 b = -(b - 0.5)**2 + 1
 Z[N//4:3*N//4,N//2] = b
@@ -127,6 +129,11 @@ print("s_f(Z) - (1 - pi/4): ", s_f(Z) - (1 - np.pi/4))
 z_0 = Z
 z = z_0
 
+
+# use a quick and dirty gradient descent method with
+# an Armijo line search to minimize the surface
+# functional
+
 # set the Armijo line search and gradient descent
 # parameters and tolerance
 gamma = 1
@@ -141,6 +148,7 @@ norm_gradfz = tol + 1
 # procedure and generates surface plots of
 # every 10th iterate to be glued together into an 
 # animation using ffmpeg
+# this demonstration just plots the final result
 
 # number of iterations and count of surface plot 
 # snapshots of iterates so far
@@ -198,7 +206,7 @@ while it <= 5000 and norm_gradfz >= tol:
         #ax = fig.gca(projection='3d')
         #ax.set_zlim(0, 1)
         #ax.plot_surface(X, Y, z, color='c')
-        #plt.savefig('./plot_temp/parabola_test'+ str(cnt) +'.png')
+        #plt.savefig('./plot_temp/surface_test'+ str(cnt) +'.png')
         #plt.close(fig)
         cnt = cnt + 1
         print("it, norm_gradfz: ", it, norm_gradfz)
@@ -208,5 +216,5 @@ fig = plt.figure()
 ax = fig.gca(projection='3d')
 ax.set_zlim(0, 1)
 ax.plot_surface(X, Y, z, color='c')
-plt.savefig('./plot_temp/parabola_test'+ str(it) +'.png')
+plt.savefig('./plot_temp/surface_test'+ str(it) +'.png')
 plt.close(fig)
